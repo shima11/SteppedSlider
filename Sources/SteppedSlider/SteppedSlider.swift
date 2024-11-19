@@ -156,8 +156,6 @@ public struct SteppedSlider: View {
   }
 }
 
-// ViewEffectを使う方法
-
 struct SizingPreferenceKey: PreferenceKey {
 
   typealias Value = CGSize
