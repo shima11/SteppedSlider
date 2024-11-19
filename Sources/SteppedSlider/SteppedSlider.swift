@@ -4,31 +4,31 @@
 import Foundation
 import SwiftUI
 
-// TODO: OSSとして切り分ける
-// TODO: 参考にしてみる
 // https://uvolchyk.medium.com/scrolling-pickers-in-swiftui-de4a9c653fb6
 
-struct MySlider: View {
+public struct SteppedSlider: View {
 
-  @Binding var value: CGFloat
+  @Binding private var value: CGFloat
   @State private var currentIndex: Int
-
-  let range: ClosedRange<CGFloat>
-  let steps: CGFloat
+  @State private var scrollIndex: Int?
+  @State private var contentSize: CGSize = .zero
 
   // NOTE: なぜかitemWidthとspacingをいい感じに入れないとメモリがずれる
-  static let itemWidth: CGFloat = 20
-  static let spacing: CGFloat = 0
+  static private let itemWidth: CGFloat = 20
+  static private let spacing: CGFloat = 0
 
-  var maximumIndex: Int {
+  private let range: ClosedRange<CGFloat>
+  private let steps: CGFloat
+
+  private var maximumIndex: Int {
     Int(((range.upperBound - range.lowerBound) / steps))
   }
 
-  var onEditing: () -> Void
+  private var onEditing: () -> Void
 
-  let feedback = UISelectionFeedbackGenerator()
+  private let feedback = UISelectionFeedbackGenerator()
 
-  init(
+  public init(
     value: Binding<CGFloat>,
     range: ClosedRange<CGFloat>,
     steps: CGFloat,
@@ -39,18 +39,10 @@ struct MySlider: View {
     self.range = range
     self.steps = steps
     self.onEditing = onEditing
-    self.currentIndex = .init(MySlider.calculateCurrentIndex(value: value.wrappedValue, steps: steps, range: range))
+    self.currentIndex = .init(SteppedSlider.calculateCurrentIndex(value: value.wrappedValue, steps: steps, range: range))
   }
 
-  func shouldBold(index: Int) -> Bool {
-    index == 0 || index == maximumIndex || (index % 5 == 0)
-  }
-
-  @State var scrollIndex: Int?
-
-  @State var contentSize: CGSize = .zero
-
-  var body: some View {
+  public var body: some View {
     ScrollViewReader { scrollProxy in
       ScrollView(.horizontal, showsIndicators: false) {
         LazyHStack(spacing: Self.spacing) {
@@ -128,7 +120,11 @@ struct MySlider: View {
     .fixedSize(horizontal: false, vertical: true)
   }
 
-  static func calculateCurrentIndex(value: CGFloat, steps: CGFloat, range: ClosedRange<CGFloat>) -> Int {
+  private func shouldBold(index: Int) -> Bool {
+    index == 0 || index == maximumIndex || (index % 5 == 0)
+  }
+
+  static private func calculateCurrentIndex(value: CGFloat, steps: CGFloat, range: ClosedRange<CGFloat>) -> Int {
     let index = (value - range.lowerBound) / steps
     return Int(round(index))
   }
@@ -139,7 +135,7 @@ struct MySlider: View {
   @Previewable @State var value: CGFloat = 5
   VStack {
 
-    MySlider(value: $value, range: 1...20, steps: 0.1, onEditing: {})
+    SteppedSlider(value: $value, range: 1...20, steps: 0.1, onEditing: {})
       .padding()
 
     Text("\(value)")
