@@ -11,7 +11,7 @@ public struct SteppedSlider: View {
   @State private var scrollIndex: Int?
   @State private var contentSize: CGSize = .zero
 
-  // NOTE: なぜかitemWidthとspacingをいい感じに入れないとメモリがずれる
+  // NOTE: なぜかscrollTargetBehavior(.viewAligned)だとitemWidthとspacingをいい感じに入れないとメモリがずれる
   static private let itemWidth: CGFloat = 20
   static private let spacing: CGFloat = 0
 
@@ -23,8 +23,6 @@ public struct SteppedSlider: View {
   }
 
   private var onEditing: () -> Void
-
-  private let feedback = UISelectionFeedbackGenerator()
 
   public init(
     value: Binding<CGFloat>,
@@ -94,7 +92,6 @@ public struct SteppedSlider: View {
       .measureSize($contentSize)
       .onChange(of: scrollIndex ?? 0, { oldValue, newValue in
         value = range.lowerBound + CGFloat(newValue) * steps
-        feedback.selectionChanged()
         onEditing()
       })
       .onChange(of: value, { oldValue, newValue in
@@ -110,6 +107,7 @@ public struct SteppedSlider: View {
           scrollProxy.scrollTo(index, anchor: .center)
         }
       })
+      .sensoryFeedback(.selection, trigger: value)
       .onAppear {
         withAnimation {
           scrollProxy.scrollTo(currentIndex, anchor: .center)
@@ -246,13 +244,14 @@ extension ScrollTargetBehavior where Self == SnapScrollTargetBehavior {
 // MARK: - Picker
 
 public struct WheelPicker: View {
-  @Environment(\._wheelPicker_segmentWidth) private var segmentWidth
 
   @Binding var count: Int
 
   var values: ClosedRange<Int>
   var spacing: Double
   var steps: Int
+
+  private var segmentWidth = 2.0
 
   public init(
     count: Binding<Int>,
@@ -343,25 +342,6 @@ public struct WheelPicker: View {
     }
     .frame(width: 280.0, height: 80.0)
     .sensoryFeedback(.selection, trigger: count)
-  }
-}
-
-// MARK: - Environment Modifications
-
-struct _WheelPicker_SegmentWidth: EnvironmentKey {
-  static let defaultValue: Double = 2.0
-}
-
-private extension EnvironmentValues {
-  var _wheelPicker_segmentWidth: Double {
-    get { self[_WheelPicker_SegmentWidth.self] }
-    set(width) { self[_WheelPicker_SegmentWidth.self] = width }
-  }
-}
-
-public extension View where Self == WheelPicker {
-  func segment(width: Double) -> some View {
-    environment(\._wheelPicker_segmentWidth, width)
   }
 }
 
