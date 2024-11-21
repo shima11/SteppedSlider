@@ -4,8 +4,6 @@
 import Foundation
 import SwiftUI
 
-// https://uvolchyk.medium.com/scrolling-pickers-in-swiftui-de4a9c653fb6
-
 public struct SteppedSlider: View {
 
   @Binding private var value: CGFloat
@@ -78,7 +76,8 @@ public struct SteppedSlider: View {
         .scrollTargetLayout()
       }
       .scrollPosition(id: $scrollIndex, anchor: .center)
-      .scrollTargetBehavior(.viewAligned)
+//      .scrollTargetBehavior(.viewAligned)
+      .scrollTargetBehavior(.snap(step: Self.spacing + Self.itemWidth))
       .overlay(
         Rectangle()
           .frame(width: 2, height: 24)
@@ -193,3 +192,179 @@ extension View {
   }
 
 }
+
+
+
+// https://uvolchyk.medium.com/scrolling-pickers-in-swiftui-de4a9c653fb6
+
+import SwiftUI
+
+// MARK: - Scroll Behavior
+
+/// A structure that defines a snapping behavior for scroll targets, conforming to `ScrollTargetBehavior`.
+struct SnapScrollTargetBehavior: ScrollTargetBehavior {
+  /// The step value to which the scroll target should snap.
+  let step: Double
+
+  /// Computes the closest multiple of `b` to the given value `a`.
+  /// - Parameters:
+  ///   - a: The value to snap.
+  ///   - b: The step to which `a` should snap.
+  /// - Returns: The closest multiple of `b` to `a`.
+  private func closestMultiple(
+    a: Double,
+    b: Double
+  ) -> Double {
+    let lowerMultiple = floor((a / b)) * b
+    let upperMultiple = floor(lowerMultiple + b)
+
+    return if abs(a - lowerMultiple) <= abs(a - upperMultiple) {
+      lowerMultiple
+    } else {
+      upperMultiple
+    }
+  }
+
+  func updateTarget(
+    _ target: inout ScrollTarget,
+    context: TargetContext
+  ) {
+    let x1 = target.rect.origin.x
+    let x2 = closestMultiple(a: x1, b: step)
+
+    target.rect.origin.x = x2
+  }
+}
+
+extension ScrollTargetBehavior where Self == SnapScrollTargetBehavior {
+  /// Creates a `SnapScrollTargetBehavior` with the specified step.
+  /// - Parameter step: The step value to which the scroll target should snap.
+  /// - Returns: A `SnapScrollTargetBehavior` instance with the given step value.
+  static func snap(step: Double) -> SnapScrollTargetBehavior { .init(step: step) }
+}
+
+// MARK: - Picker
+
+public struct WheelPicker: View {
+  @Environment(\._wheelPicker_segmentWidth) private var segmentWidth
+
+  @Binding var count: Int
+
+  var values: ClosedRange<Int>
+  var spacing: Double
+  var steps: Int
+
+  public init(
+    count: Binding<Int>,
+    values: ClosedRange<Int> = 0...100,
+    spacing: Double = 8.0,
+    steps: Int = 5
+  ) {
+    _count = count
+    self.values = values
+    self.spacing = spacing
+    self.steps = steps
+  }
+
+  public var body: some View {
+    ZStack {
+      GeometryReader { proxy in
+        ScrollView(.horizontal) {
+          HStack(spacing: spacing) {
+            ForEach(values, id: \.self) { index in
+              let isPrimary = index % steps == .zero
+
+              VStack(spacing: 40.0) {
+                Rectangle()
+                  .frame(
+                    width: segmentWidth,
+                    height: isPrimary ? 20.0 : 8.0
+                  )
+                  .frame(
+                    maxHeight: 20.0,
+                    alignment: .top
+                  )
+                Rectangle()
+                  .frame(
+                    width: segmentWidth,
+                    height: isPrimary ? 20.0 : 8.0
+                  )
+                  .frame(
+                    maxHeight: 20.0,
+                    alignment: .bottom
+                  )
+              }
+              .scrollTransition(
+                axis: .horizontal,
+                transition: { content, phase in
+                  content
+                    .opacity(phase == .topLeading ? 0.2 : 1.0)
+                }
+              )
+              .overlay {
+                if isPrimary {
+                  Text("\(index)")
+                    .font(.system(size: 24.0, design: .monospaced))
+                    .fixedSize()
+                    .scrollTransition(
+                      axis: .horizontal,
+                      transition: { content, phase in
+                        content
+                          .opacity(phase.isIdentity ? 10.0 : 0.4)
+                      }
+                    )
+                }
+              }
+            }
+          }
+          .scrollTargetLayout()
+        }
+        .overlay {
+          Rectangle()
+            .fill(.red)
+            .frame(width: segmentWidth)
+        }
+        .scrollIndicators(.hidden)
+        .safeAreaPadding(.horizontal, proxy.size.width / 2.0)
+        .scrollTargetBehavior(.snap(step: spacing + segmentWidth))
+        .scrollPosition(
+          id: .init(
+            get: {
+              count
+            },
+            set: { value, transaction in
+              if let value {
+                count = value
+              }
+            }
+          )
+        )
+      }
+    }
+    .frame(width: 280.0, height: 80.0)
+    .sensoryFeedback(.selection, trigger: count)
+  }
+}
+
+// MARK: - Environment Modifications
+
+struct _WheelPicker_SegmentWidth: EnvironmentKey {
+  static let defaultValue: Double = 2.0
+}
+
+private extension EnvironmentValues {
+  var _wheelPicker_segmentWidth: Double {
+    get { self[_WheelPicker_SegmentWidth.self] }
+    set(width) { self[_WheelPicker_SegmentWidth.self] = width }
+  }
+}
+
+public extension View where Self == WheelPicker {
+  func segment(width: Double) -> some View {
+    environment(\._wheelPicker_segmentWidth, width)
+  }
+}
+
+#Preview(body: {
+  WheelPicker(count: .constant(3), values: 0...100, spacing: 24.0, steps: 5)
+})
