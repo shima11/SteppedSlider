@@ -130,7 +130,7 @@ public struct SteppedSlider: View {
 }
 
 #Preview {
-  @Previewable @State var value: CGFloat = 10
+  @Previewable @State var value: CGFloat = 5.5
   VStack {
 
     SteppedSlider(value: $value, range: 1...20, steps: 0.1, onEditing: {})
@@ -154,51 +154,7 @@ public struct SteppedSlider: View {
   }
 }
 
-struct SizingPreferenceKey: PreferenceKey {
-
-  typealias Value = CGSize
-
-  static let defaultValue: Value = .zero
-
-  static func reduce(value: inout Value, nextValue: () -> Value) {
-    let next = nextValue()
-    value = next
-  }
-
-}
-
-extension View {
-
-  /**
-   Measures the receiver view size using GeometryReader.
-   */
-  public func measureSize(_ size: Binding<CGSize>) -> some View {
-    background(Color.clear._measureSize(size))
-  }
-
-  private func _measureSize(_ size: Binding<CGSize>) -> some View {
-
-    self.background(
-      GeometryReader(content: { proxy in
-        Color.clear
-          .preference(key: SizingPreferenceKey.self, value: proxy.size)
-      })
-    )
-    .onPreferenceChange(SizingPreferenceKey.self) { _size in
-      size.wrappedValue = _size
-    }
-
-  }
-
-}
-
-
-
 // https://uvolchyk.medium.com/scrolling-pickers-in-swiftui-de4a9c653fb6
-
-import SwiftUI
-
-// MARK: - Scroll Behavior
 
 /// A structure that defines a snapping behavior for scroll targets, conforming to `ScrollTargetBehavior`.
 struct SnapScrollTargetBehavior: ScrollTargetBehavior {
@@ -242,9 +198,12 @@ extension ScrollTargetBehavior where Self == SnapScrollTargetBehavior {
   static func snap(step: Double) -> SnapScrollTargetBehavior { .init(step: step) }
 }
 
-// MARK: - Picker
 
-public struct WheelPicker: View {
+#if DEBUG
+
+// https://youtu.be/5S08AZ8cYek
+
+struct SamplePicker: View {
 
   @Binding var count: Int
 
@@ -254,7 +213,7 @@ public struct WheelPicker: View {
 
   private var segmentWidth = 2.0
 
-  public init(
+  init(
     count: Binding<Int>,
     values: ClosedRange<Int> = 0...100,
     spacing: Double = 8.0,
@@ -266,7 +225,7 @@ public struct WheelPicker: View {
     self.steps = steps
   }
 
-  public var body: some View {
+  var body: some View {
     ZStack {
       GeometryReader { proxy in
         ScrollView(.horizontal) {
@@ -294,13 +253,6 @@ public struct WheelPicker: View {
                     alignment: .bottom
                   )
               }
-              .scrollTransition(
-                axis: .horizontal,
-                transition: { content, phase in
-                  content
-                    .opacity(phase == .topLeading ? 0.2 : 1.0)
-                }
-              )
               .overlay {
                 if isPrimary {
                   Text("\(index)")
@@ -347,5 +299,7 @@ public struct WheelPicker: View {
 }
 
 #Preview(body: {
-  WheelPicker(count: .constant(3), values: 0...100, spacing: 24.0, steps: 5)
+  SamplePicker(count: .constant(3), values: 0...100, spacing: 24.0, steps: 5)
 })
+
+#endif
