@@ -109,9 +109,10 @@ public struct SteppedSlider: View {
       })
       .sensoryFeedback(.selection, trigger: value)
       .onAppear {
-        // TODO: 初期値が適切に反映されないことがある
-        withAnimation {
-          scrollProxy.scrollTo(currentIndex, anchor: .center)
+        Task { @MainActor in
+          withAnimation {
+            scrollProxy.scrollTo(currentIndex, anchor: .center)
+          }
         }
       }
     }
@@ -130,7 +131,9 @@ public struct SteppedSlider: View {
 }
 
 #Preview {
+
   @Previewable @State var value: CGFloat = 5.5
+
   VStack {
 
     SteppedSlider(value: $value, range: 1...20, steps: 0.1, onEditing: {})
