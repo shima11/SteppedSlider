@@ -70,6 +70,13 @@ public struct SteppedSlider: View {
             )
             .padding(.top, 12)
             .id(index)
+            .scrollTransition(
+              axis: .horizontal,
+              transition: { content, phase in
+                content
+                  .opacity(phase.isIdentity ? 1.0 : 0.3)
+              }
+            )
           }
         }
         .scrollTargetLayout()
@@ -129,137 +136,43 @@ public struct SteppedSlider: View {
 
 #Preview {
 
-  @Previewable @State var value: CGFloat = 5.0
+  @Previewable @State var value: CGFloat = 5.5
+
+  let range: ClosedRange<CGFloat> = 1...20
 
   VStack {
 
-    SteppedSlider(value: $value, range: 1...20, steps: 0.1, onEditing: {})
+    SteppedSlider(value: $value, range: range, steps: 0.1, onEditing: {})
       .frame(height: 60)
       .padding()
 
-    Text("\(value)")
-    
+    Spacer(minLength: 24).fixedSize()
+
+    Text(String(format: "%g", value))
+
     HStack {
+
       Button(action: {
-        value -= 1
+        if range.contains(value - 1) {
+          value -= 1
+        }
       }, label: {
-        Text("-= 1")
+        Text("-1").bold()
       })
+      .buttonStyle(.borderedProminent)
+      .disabled(!range.contains(value - 1))
+
       Button(action: {
-        value += 1
+        if range.contains(value + 1) {
+          value += 1
+        }
       }, label: {
-        Text("+= 1")
+        Text("+1").bold()
       })
+      .buttonStyle(.borderedProminent)
+      .disabled(!range.contains(value + 1))
+
     }
-
-    Spacer(minLength: 48).fixedSize()
-
-    SamplePicker(count: .constant(3), values: 0...100, spacing: 24.0, steps: 5)
 
   }
 }
-
-#if DEBUG
-
-// https://youtu.be/5S08AZ8cYek
-
-struct SamplePicker: View {
-
-  @Binding var count: Int
-
-  var values: ClosedRange<Int>
-  var spacing: Double
-  var steps: Int
-
-  private var segmentWidth = 2.0
-
-  init(
-    count: Binding<Int>,
-    values: ClosedRange<Int> = 0...100,
-    spacing: Double = 8.0,
-    steps: Int = 5
-  ) {
-    _count = count
-    self.values = values
-    self.spacing = spacing
-    self.steps = steps
-  }
-
-  var body: some View {
-    ZStack {
-      GeometryReader { proxy in
-        ScrollView(.horizontal) {
-          HStack(spacing: spacing) {
-            ForEach(values, id: \.self) { index in
-              let isPrimary = index % steps == .zero
-
-              VStack(spacing: 40.0) {
-                Rectangle()
-                  .frame(
-                    width: segmentWidth,
-                    height: isPrimary ? 20.0 : 8.0
-                  )
-                  .frame(
-                    maxHeight: 20.0,
-                    alignment: .top
-                  )
-                Rectangle()
-                  .frame(
-                    width: segmentWidth,
-                    height: isPrimary ? 20.0 : 8.0
-                  )
-                  .frame(
-                    maxHeight: 20.0,
-                    alignment: .bottom
-                  )
-              }
-              .overlay {
-                if isPrimary {
-                  Text("\(index)")
-                    .font(.system(size: 24.0, design: .monospaced))
-                    .fixedSize()
-                    .scrollTransition(
-                      axis: .horizontal,
-                      transition: { content, phase in
-                        content
-                          .opacity(phase.isIdentity ? 10.0 : 0.4)
-                      }
-                    )
-                }
-              }
-            }
-          }
-          .scrollTargetLayout()
-        }
-        .overlay {
-          Rectangle()
-            .fill(.red)
-            .frame(width: segmentWidth)
-        }
-        .scrollIndicators(.hidden)
-        .safeAreaPadding(.horizontal, proxy.size.width / 2.0)
-        .scrollTargetBehavior(.snap(step: spacing + segmentWidth))
-        .scrollPosition(
-          id: .init(
-            get: {
-              count
-            },
-            set: { value, transaction in
-              if let value {
-                count = value
-              }
-            }
-          )
-        )
-      }
-    }
-    .frame(width: 280.0, height: 80.0)
-    .sensoryFeedback(.selection, trigger: count)
-  }
-}
-
-#Preview(body: {
-  SamplePicker(count: .constant(3), values: 0...100, spacing: 24.0, steps: 5)
-})
-
-#endif
