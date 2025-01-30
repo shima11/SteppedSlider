@@ -38,6 +38,7 @@ struct SnapScrollTargetBehavior: ScrollTargetBehavior {
     _ target: inout ScrollTarget,
     context: TargetContext
   ) {
+
     let x1 = target.rect.origin.x
     let x2 = closestMultiple(a: x1, b: step)
 

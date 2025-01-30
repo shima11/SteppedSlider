@@ -11,9 +11,8 @@ public struct SteppedSlider: View {
   @State private var scrollIndex: Int?
   @State private var contentSize: CGSize = .zero
 
-  // NOTE: なぜかscrollTargetBehavior(.viewAligned)だとitemWidthとspacingをいい感じに入れないとメモリがずれる
   static private let itemWidth: CGFloat = 20
-  static private let spacing: CGFloat = 0
+  static private let spacing: CGFloat = 10
 
   private let range: ClosedRange<CGFloat>
   private let steps: CGFloat
@@ -42,9 +41,6 @@ public struct SteppedSlider: View {
     ScrollViewReader { scrollProxy in
       ScrollView(.horizontal, showsIndicators: false) {
         LazyHStack(spacing: Self.spacing) {
-          // itemWidth/2は｜のサイズの最優の余白分スクロールのInsetがずれて見えてしまう問題の対応
-          // spacingはSpacerが入ってしまっているのでHStackのspacingが含まれてしまっている問題の対応
-          Spacer(minLength: contentSize.width/2 -  Self.itemWidth/2 - Self.spacing).fixedSize()
           // 両端にメモリを置きたいので一つ追加している
           ForEach(0..<maximumIndex+1, id: \.self) { index in
             let isBold = shouldBold(index: index)
@@ -56,7 +52,6 @@ public struct SteppedSlider: View {
             .frame(width: Self.itemWidth)
             .overlay(
               ZStack {
-                // 一定間隔でメモリを表示
                 if shouldBold(index: index) {
                   Text(String(format: "%g", CGFloat(index) * steps + range.lowerBound))
                     .font(.caption2)
@@ -67,14 +62,14 @@ public struct SteppedSlider: View {
             )
             .padding(.top, 12)
             .id(index)
+            .background(Color.gray)
           }
-          Spacer(minLength: contentSize.width/2 -  Self.itemWidth/2 - Self.spacing).fixedSize()
         }
         .frame(height: 60)
         .scrollTargetLayout()
       }
+      .contentMargins(.horizontal, contentSize.width/2 - Self.itemWidth/2)
       .scrollPosition(id: $scrollIndex, anchor: .center)
-//      .scrollTargetBehavior(.viewAligned)
       .scrollTargetBehavior(.snap(step: Self.spacing + Self.itemWidth))
       .overlay(
         Rectangle()
@@ -89,7 +84,9 @@ public struct SteppedSlider: View {
           LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .leading, endPoint: .trailing).frame(width: 24)
         }
       })
-      .measureSize($contentSize)
+      .onGeometryChange(for: CGSize.self, of: \.size, action: {
+        contentSize = $0
+      })
       .onChange(of: scrollIndex ?? 0, { oldValue, newValue in
         value = range.lowerBound + CGFloat(newValue) * steps
         onEditing()
@@ -97,7 +94,6 @@ public struct SteppedSlider: View {
       .onChange(of: value, { oldValue, newValue in
 
         // 履歴をタップして反映させる時, 他のスライダーに連動して反映する時
-
         let index = Self.calculateCurrentIndex(value: newValue, steps: steps, range: range)
 
         // 自分でスライダーを移動した場合はスクロールさせない
@@ -132,7 +128,7 @@ public struct SteppedSlider: View {
 
 #Preview {
 
-  @Previewable @State var value: CGFloat = 5.5
+  @Previewable @State var value: CGFloat = 5.0
 
   VStack {
 
@@ -153,6 +149,10 @@ public struct SteppedSlider: View {
         Text("+= 1")
       })
     }
+
+    Spacer(minLength: 48).fixedSize()
+
+    SamplePicker(count: .constant(3), values: 0...100, spacing: 24.0, steps: 5)
 
   }
 }
