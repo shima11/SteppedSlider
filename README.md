@@ -6,7 +6,7 @@
 
 SteppedSlider is a SwiftUI slider component with discrete steps, memory functionality, and a snap interaction for smooth user experience.
 
-![Sample](sample.PNG)
+<img src="sample.png" width="50%">
 
 ## Features
 - Visual indicators for step marks
@@ -38,29 +38,29 @@ import SteppedSlider
 
 struct ContentView: View {
 
-@State private var value: Int = 2
+  @State private var value: Int = 2
 
-var body: some View {
-SteppedSlider(
-value: $value,
-range: 0...10,
-steps: 1,
-horizontalEdgeMask: .hidden,
-anchorView: {
-Rectangle()
-.frame(width: 1, height: 12)
-.foregroundColor(.red)
-},
-segmentView: { _, _ in
-Rectangle()
-.frame(width: 1, height: 12)
-},
-segmentOverlayView: { index, _ in
-Text(String(format: "%g", CGFloat(index)))
-},
-onEditing: {}
-)
-}
+  var body: some View {
+    SteppedSlider(
+      value: $value,
+      range: 0...10,
+      steps: 1,
+      horizontalEdgeMask: .hidden,
+      anchorView: {
+       Rectangle()
+        .frame(width: 1, height: 12)
+        .foregroundColor(.red)
+      },
+      segmentView: { _, _ in
+       Rectangle()
+        .frame(width: 1, height: 12)
+      },
+      segmentOverlayView: { index, _ in
+       Text(String(format: "%g", CGFloat(index)))
+      },
+      onEditing: {}
+    )
+  }
 }
 ```
 
