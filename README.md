@@ -1,10 +1,10 @@
 # SteppedSlider
 
 ![Swift](https://img.shields.io/badge/Swift-5.0-orange.svg)
-![iOS](https://img.shields.io/badge/iOS-13%2B-blue.svg)
+![iOS](https://img.shields.io/badge/iOS-17%2B-blue.svg)
 ![License](https://img.shields.io/github/license/shima11/SteppedSlider)
 
-SteppedSlider is a SwiftUI slider component with discrete steps, memory functionality, and a snap interaction for smooth user experience.
+SteppedSlider is a pure SwiftUI slider component with discrete steps, memory functionality, and a snap interaction for a smooth user experience.
 
 <img src="sample.png" width="50%">
 
