@@ -143,7 +143,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
 
   let range: ClosedRange<CGFloat> = 1...20
   let steps = 0.1
-  let shouldBold: (Int, Int) -> Bool = { index, maximumIndex -> Bool in
+  let shouldBold1: (Int, Int) -> Bool = { index, maximumIndex -> Bool in
     index == 0 || index == maximumIndex || (index % 5 == 0)
   }
 
@@ -161,14 +161,14 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
           .padding(.top, 12)
       },
       segmentView: { index, maximumIndex in
-        let isBold = shouldBold(index, maximumIndex)
+        let isBold = shouldBold1(index, maximumIndex)
         Rectangle()
           .foregroundStyle(Color.primary)
           .frame(width: isBold ? 2 : 1, height: isBold ? 24 : 12)
           .padding(.top, 12)
       },
       segmentOverlayView: { index, maximumIndex in
-        if shouldBold(index, maximumIndex) {
+        if shouldBold1(index, maximumIndex) {
           Text(String(format: "%g", CGFloat(index) * steps + range.lowerBound))
             .font(.caption2)
             .fixedSize()
@@ -181,6 +181,44 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
     .frame(height: 60)
     .padding()
 
+    Spacer(minLength: 24).fixedSize()
+
+    let shouldBold2: (Int, Int) -> Bool = { index, maximumIndex -> Bool in
+      index == 0 || index == maximumIndex || (index % 10 == 0)
+    }
+
+    SteppedSlider(
+      value: $value,
+      range: range,
+      steps: steps,
+      horizontalEdgeMask: .visible(width: 24),
+      anchorView: {
+        Rectangle()
+          .frame(width: 2)
+          .foregroundColor(.red)
+      },
+      segmentView: { index, maximumIndex in
+        let isBold = shouldBold2(index, maximumIndex)
+        VStack {
+          Rectangle()
+            .frame(width: isBold ? 2 : 1, height: isBold ? 16 : 12)
+          Spacer()
+          Rectangle()
+            .frame(width: isBold ? 2 : 1, height: isBold ? 16 : 12)
+        }
+      },
+      segmentOverlayView: { index, maximumIndex in
+        let isBold = shouldBold2(index, maximumIndex)
+        if isBold {
+          Text(String(format: "%g", CGFloat(index) * steps + range.lowerBound))
+            .font(.caption2)
+            .fixedSize()
+        }
+      },
+      onEditing: {}
+    )
+    .frame(height: 60)
+    .padding()
 
     Spacer(minLength: 24).fixedSize()
 
