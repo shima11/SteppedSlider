@@ -28,12 +28,20 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
   let segmentView: (_ index: Int, _ maximumIndex: Int) -> Segment
   let segmentOverlayView: (_ index: Int, _ maximumIndex: Int) -> SegmentOverlay
 
+  public enum HorizontalEdgeMask {
+    case hidden
+    case visible(width: CGFloat)
+  }
+
+  let horizontalEdgeMask: HorizontalEdgeMask
+
   public init(
     value: Binding<CGFloat>,
     range: ClosedRange<CGFloat>,
     steps: CGFloat,
     itemWidth: CGFloat = 10,
     spacing: CGFloat = 0,
+    horizontalEdgeMask: HorizontalEdgeMask = .visible(width: 12),
     @ViewBuilder anchorView: @MainActor @escaping () -> Anchor,
     @ViewBuilder segmentView: @MainActor @escaping (Int, Int) -> Segment,
     @ViewBuilder segmentOverlayView: @MainActor @escaping (Int, Int) -> SegmentOverlay,
@@ -44,6 +52,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
     self.steps = steps
     self.itemWidth = itemWidth
     self.spacing = spacing
+    self.horizontalEdgeMask = horizontalEdgeMask
     self.anchorView = anchorView
     self.segmentView = segmentView
     self.segmentOverlayView = segmentOverlayView
@@ -62,7 +71,6 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
                 segmentOverlayView(index, maximumIndex)
               )
               .id(index)
-            // TODO: init時に外から変更させる処理を任せる
 //              .scrollTransition(
 //                axis: .horizontal,
 //                transition: { content, phase in
@@ -77,9 +85,22 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
       .contentMargins(.horizontal, contentSize.width/2 - itemWidth/2)
       .scrollPosition(id: $scrollIndex, anchor: .center)
       .scrollTargetBehavior(.snap(step: spacing + itemWidth))
+      .mask {
+        switch horizontalEdgeMask {
+        case .hidden:
+          Color.black
+        case .visible(let width):
+          HStack(spacing: 0) {
+            LinearGradient(colors: [.black.opacity(0), .black], startPoint: .leading, endPoint: .trailing).frame(width: width)
+            Color.black
+            LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .leading, endPoint: .trailing).frame(width: width)
+          }
+        }
+      }
       .overlay(
         anchorView()
       )
+      .sensoryFeedback(.selection, trigger: value)
       .onGeometryChange(for: CGSize.self, of: \.size, action: {
         contentSize = $0
       })
@@ -99,7 +120,6 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
           scrollProxy.scrollTo(index, anchor: .center)
         }
       })
-      .sensoryFeedback(.selection, trigger: value)
       .onAppear {
         Task { @MainActor in
           withAnimation {
@@ -123,7 +143,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
 
   let range: ClosedRange<CGFloat> = 1...20
   let steps = 0.1
-  var shouldBold: (Int, Int) -> Bool = { index, maximumIndex -> Bool in
+  let shouldBold: (Int, Int) -> Bool = { index, maximumIndex -> Bool in
     index == 0 || index == maximumIndex || (index % 5 == 0)
   }
 
@@ -133,6 +153,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
       value: $value,
       range: range,
       steps: steps,
+      horizontalEdgeMask: .hidden,
       anchorView: {
         Rectangle()
           .frame(width: 2, height: 24)
@@ -141,35 +162,25 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
       },
       segmentView: { index, maximumIndex in
         let isBold = shouldBold(index, maximumIndex)
-        ZStack {
-          Rectangle()
-            .foregroundStyle(Color.primary)
-            .frame(width: isBold ? 2 : 1, height: isBold ? 24 : 12)
-            .padding(.top, 12)
-        }
+        Rectangle()
+          .foregroundStyle(Color.primary)
+          .frame(width: isBold ? 2 : 1, height: isBold ? 24 : 12)
+          .padding(.top, 12)
       },
       segmentOverlayView: { index, maximumIndex in
-        ZStack {
-          if shouldBold(index, maximumIndex) {
-            Text(String(format: "%g", CGFloat(index) * steps + range.lowerBound))
-              .font(.caption2)
-              .fixedSize()
-              .offset(y: -20)
-              .padding(.top, 12)
-          }
+        if shouldBold(index, maximumIndex) {
+          Text(String(format: "%g", CGFloat(index) * steps + range.lowerBound))
+            .font(.caption2)
+            .fixedSize()
+            .offset(y: -20)
+            .padding(.top, 12)
         }
       },
       onEditing: {}
     )
-    .mask({
-      HStack(spacing: 0) {
-        LinearGradient(colors: [.black.opacity(0), .black], startPoint: .leading, endPoint: .trailing).frame(width: 24)
-        Color.black
-        LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .leading, endPoint: .trailing).frame(width: 24)
-      }
-    })
     .frame(height: 60)
     .padding()
+
 
     Spacer(minLength: 24).fixedSize()
 
