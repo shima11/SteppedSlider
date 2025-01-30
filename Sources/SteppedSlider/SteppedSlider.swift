@@ -7,12 +7,13 @@ import SwiftUI
 public struct SteppedSlider: View {
 
   @Binding private var value: CGFloat
+
   @State private var currentIndex: Int
   @State private var scrollIndex: Int?
   @State private var contentSize: CGSize = .zero
 
-  static private let itemWidth: CGFloat = 20
-  static private let spacing: CGFloat = 10
+  private let itemWidth: CGFloat
+  private let spacing: CGFloat
 
   private let range: ClosedRange<CGFloat>
   private let steps: CGFloat
@@ -21,35 +22,42 @@ public struct SteppedSlider: View {
     Int(((range.upperBound - range.lowerBound) / steps))
   }
 
-  private var onEditing: () -> Void
+  private var onEditing: @MainActor () -> Void
 
   public init(
     value: Binding<CGFloat>,
     range: ClosedRange<CGFloat>,
     steps: CGFloat,
-    onEditing: @escaping () -> Void
+    itemWidth: CGFloat = 10,
+    spacing: CGFloat = 0,
+    onEditing: @MainActor @escaping () -> Void
   ) {
 
     self._value = value
     self.range = range
     self.steps = steps
+    self.itemWidth = itemWidth
+    self.spacing = spacing
     self.onEditing = onEditing
     self.currentIndex = .init(SteppedSlider.calculateCurrentIndex(value: value.wrappedValue, steps: steps, range: range))
+  }
+
+  private func shouldBold(index: Int) -> Bool {
+    index == 0 || index == maximumIndex || (index % 5 == 0)
   }
 
   public var body: some View {
     ScrollViewReader { scrollProxy in
       ScrollView(.horizontal, showsIndicators: false) {
-        LazyHStack(spacing: Self.spacing) {
-          // 両端にメモリを置きたいので一つ追加している
-          ForEach(0..<maximumIndex+1, id: \.self) { index in
+        LazyHStack(spacing: spacing) {
+          ForEach(0...maximumIndex, id: \.self) { index in
             let isBold = shouldBold(index: index)
             ZStack {
               Rectangle()
                 .foregroundStyle(Color.primary)
                 .frame(width: isBold ? 2 : 1, height: isBold ? 24 : 12)
             }
-            .frame(width: Self.itemWidth)
+            .frame(width: itemWidth)
             .overlay(
               ZStack {
                 if shouldBold(index: index) {
@@ -62,15 +70,13 @@ public struct SteppedSlider: View {
             )
             .padding(.top, 12)
             .id(index)
-            .background(Color.gray)
           }
         }
-        .frame(height: 60)
         .scrollTargetLayout()
       }
-      .contentMargins(.horizontal, contentSize.width/2 - Self.itemWidth/2)
+      .contentMargins(.horizontal, contentSize.width/2 - itemWidth/2)
       .scrollPosition(id: $scrollIndex, anchor: .center)
-      .scrollTargetBehavior(.snap(step: Self.spacing + Self.itemWidth))
+      .scrollTargetBehavior(.snap(step: spacing + itemWidth))
       .overlay(
         Rectangle()
           .frame(width: 2, height: 24)
@@ -112,11 +118,6 @@ public struct SteppedSlider: View {
         }
       }
     }
-    .fixedSize(horizontal: false, vertical: true)
-  }
-
-  private func shouldBold(index: Int) -> Bool {
-    index == 0 || index == maximumIndex || (index % 5 == 0)
   }
 
   static private func calculateCurrentIndex(value: CGFloat, steps: CGFloat, range: ClosedRange<CGFloat>) -> Int {
@@ -133,6 +134,7 @@ public struct SteppedSlider: View {
   VStack {
 
     SteppedSlider(value: $value, range: 1...20, steps: 0.1, onEditing: {})
+      .frame(height: 60)
       .padding()
 
     Text("\(value)")
