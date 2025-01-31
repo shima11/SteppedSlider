@@ -6,7 +6,7 @@
 
 SteppedSlider is a pure SwiftUI slider component with discrete steps, memory functionality, and a snap interaction for a smooth user experience.
 
-<img src="sample.png" width="50%">
+<img src="sample.gif" width="50%">
 
 ## Features
 - Visual indicators for step marks
