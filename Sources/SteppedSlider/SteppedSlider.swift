@@ -17,10 +17,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
 
   private let range: ClosedRange<CGFloat>
   private let steps: CGFloat
-
-  private var maximumIndex: Int {
-    Int(((range.upperBound - range.lowerBound) / steps))
-  }
+  private let maximumIndex: Int
 
   private var onEditing: @MainActor () -> Void
 
@@ -57,6 +54,8 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
     self.segmentView = segmentView
     self.segmentOverlayView = segmentOverlayView
     self.onEditing = onEditing
+
+    self.maximumIndex = Int(((range.upperBound - range.lowerBound) / steps))
     self.currentIndex = .init(SteppedSlider.calculateCurrentIndex(value: value.wrappedValue, steps: steps, range: range))
   }
 
