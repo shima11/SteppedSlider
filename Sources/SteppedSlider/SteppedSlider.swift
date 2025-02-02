@@ -99,7 +99,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
       .overlay(
         anchorView()
       )
-      .sensoryFeedback(.selection, trigger: value)
+      .sensoryFeedback(.selection, trigger: scrollIndex)
       .onGeometryChange(for: CGSize.self, of: \.size, action: {
         contentSize = $0
       })
