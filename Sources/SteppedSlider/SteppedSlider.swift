@@ -31,6 +31,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
   }
 
   let horizontalEdgeMask: HorizontalEdgeMask
+  let animation: Animation?
 
   public init(
     value: Binding<CGFloat>,
@@ -39,6 +40,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
     itemWidth: CGFloat = 10,
     spacing: CGFloat = 0,
     horizontalEdgeMask: HorizontalEdgeMask = .visible(width: 12),
+    animation: Animation? = .default,
     @ViewBuilder anchorView: @MainActor @escaping () -> Anchor,
     @ViewBuilder segmentView: @MainActor @escaping (Int, Int) -> Segment,
     @ViewBuilder segmentOverlayView: @MainActor @escaping (Int, Int) -> SegmentOverlay,
@@ -50,6 +52,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
     self.itemWidth = itemWidth
     self.spacing = spacing
     self.horizontalEdgeMask = horizontalEdgeMask
+    self.animation = animation
     self.anchorView = anchorView
     self.segmentView = segmentView
     self.segmentOverlayView = segmentOverlayView
@@ -115,13 +118,13 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
         // 自分でスライダーを移動した場合はスクロールさせない
         guard index != scrollIndex else { return }
 
-        withAnimation {
+        withAnimation(animation) {
           scrollProxy.scrollTo(index, anchor: .center)
         }
       })
       .onAppear {
         Task { @MainActor in
-          withAnimation {
+          withAnimation(animation) {
             scrollProxy.scrollTo(currentIndex, anchor: .center)
           }
         }
@@ -191,6 +194,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
       range: range,
       steps: steps,
       horizontalEdgeMask: .visible(width: 24),
+      animation: nil,
       anchorView: {
         Rectangle()
           .frame(width: 2)
