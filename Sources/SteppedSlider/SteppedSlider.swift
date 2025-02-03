@@ -143,7 +143,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
 
   @Previewable @State var value: CGFloat = 5.8
 
-  let range: ClosedRange<CGFloat> = 1...20
+  let range: ClosedRange<CGFloat> = 1...50
   let steps = 0.1
   let shouldBold1: (Int, Int) -> Bool = { index, maximumIndex -> Bool in
     index == 0 || index == maximumIndex || (index % 5 == 0)
@@ -156,6 +156,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
       range: range,
       steps: steps,
       horizontalEdgeMask: .hidden,
+      animation: nil,
       anchorView: {
         Rectangle()
           .frame(width: 2, height: 24)
