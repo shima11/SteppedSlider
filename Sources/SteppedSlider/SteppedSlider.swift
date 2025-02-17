@@ -4,7 +4,7 @@
 import Foundation
 import SwiftUI
 
-public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: View {
+public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View, Modifier: ViewModifier>: View {
 
   @Binding private var value: CGFloat
 
@@ -33,6 +33,8 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
   let horizontalEdgeMask: HorizontalEdgeMask
   let animation: Animation?
 
+  let segmentModifier: Modifier
+
   public init(
     value: Binding<CGFloat>,
     range: ClosedRange<CGFloat>,
@@ -41,6 +43,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
     spacing: CGFloat = 0,
     horizontalEdgeMask: HorizontalEdgeMask = .visible(width: 12),
     animation: Animation? = .default,
+    segmentModifier: Modifier = EmptyModifier(),
     @ViewBuilder anchorView: @MainActor @escaping () -> Anchor,
     @ViewBuilder segmentView: @MainActor @escaping (Int, Int) -> Segment,
     @ViewBuilder segmentOverlayView: @MainActor @escaping (Int, Int) -> SegmentOverlay,
@@ -53,6 +56,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
     self.spacing = spacing
     self.horizontalEdgeMask = horizontalEdgeMask
     self.animation = animation
+    self.segmentModifier = segmentModifier
     self.anchorView = anchorView
     self.segmentView = segmentView
     self.segmentOverlayView = segmentOverlayView
@@ -73,13 +77,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
                 segmentOverlayView(index, maximumIndex)
               )
               .id(index)
-//              .scrollTransition(
-//                axis: .horizontal,
-//                transition: { content, phase in
-//                  content
-//                    .opacity(phase.isIdentity ? 1.0 : 0.3)
-//                }
-//              )
+              .modifier(segmentModifier)
           }
         }
         .scrollTargetLayout()
@@ -139,6 +137,16 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
 
 }
 
+
+struct ScrollTransitionModifier: ViewModifier {
+  func body(content: Content) -> some View {
+    content.scrollTransition { content, phase in
+      content
+        .opacity(phase.isIdentity ? 1 : 0.3)
+    }
+  }
+}
+
 #Preview {
 
   @Previewable @State var value: CGFloat = 5.8
@@ -157,6 +165,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View>: 
       steps: steps,
       horizontalEdgeMask: .hidden,
       animation: nil,
+      segmentModifier: ScrollTransitionModifier(),
       anchorView: {
         Rectangle()
           .frame(width: 2, height: 24)
