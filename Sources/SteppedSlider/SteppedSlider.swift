@@ -101,8 +101,8 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View, M
         anchorView()
       )
       .sensoryFeedback(.selection, trigger: scrollIndex)
-      .onGeometryChange(for: CGSize.self, of: \.size, action: {
-        contentSize = $0
+      .onGeometryChange(for: CGSize.self, of: \.size, action: { value in
+        contentSize = value
       })
       .onChange(of: scrollIndex ?? 0, { oldValue, newValue in
         value = range.lowerBound + CGFloat(newValue) * steps
@@ -118,6 +118,12 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View, M
 
         withAnimation(animation) {
           scrollProxy.scrollTo(index, anchor: .center)
+        }
+      })
+      .onChange(of: contentSize, { _, _ in
+        Task { @MainActor in
+          // TODO: タイミングが早くて正しい位置にスクロールしない
+          scrollProxy.scrollTo(currentIndex, anchor: .center)
         }
       })
       .onAppear {
@@ -137,6 +143,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View, M
 
 }
 
+#if DEBUG
 
 struct ScrollTransitionModifier: ViewModifier {
   func body(content: Content) -> some View {
@@ -150,6 +157,7 @@ struct ScrollTransitionModifier: ViewModifier {
 #Preview {
 
   @Previewable @State var value: CGFloat = 5.8
+  @Previewable @State var toggle = false
 
   let range: ClosedRange<CGFloat> = 1...50
   let steps = 0.1
@@ -199,7 +207,8 @@ struct ScrollTransitionModifier: ViewModifier {
       index == 0 || index == maximumIndex || (index % 10 == 0)
     }
 
-    SteppedSlider(
+    HStack {
+      SteppedSlider(
       value: $value,
       range: range,
       steps: steps,
@@ -230,8 +239,13 @@ struct ScrollTransitionModifier: ViewModifier {
       },
       onEditing: {}
     )
-    .frame(height: 60)
-    .padding()
+      .frame(height: 60)
+      .padding()
+
+      if toggle {
+        Text("Text").padding()
+      }
+    }
 
     Spacer(minLength: 24).fixedSize()
 
@@ -259,7 +273,18 @@ struct ScrollTransitionModifier: ViewModifier {
       .buttonStyle(.borderedProminent)
       .disabled(!range.contains(value + 1))
 
+      Button(action: {
+        withAnimation(.bouncy) {
+          toggle.toggle()
+        }
+      }, label: {
+        Text("Toggle").bold()
+      })
+      .buttonStyle(.borderedProminent)
+
     }
 
   }
 }
+
+#endif
