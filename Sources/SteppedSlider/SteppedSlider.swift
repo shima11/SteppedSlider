@@ -121,20 +121,14 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View, M
         }
       })
       .onChange(of: contentSize, { _, _ in
-
-        Task { @MainActor in
-          // TODO: 正しい位置にスクロールしない -> animationをnilから.spring(duration:)にすると解決した
-//          withAnimation(animation) {
-          withAnimation(.bouncy) {
-            scrollProxy.scrollTo(currentIndex, anchor: .center)
-          }
+        // animationがnilだと正しい位置にスクロールしない
+        withAnimation(animation ?? .default) {
+          scrollProxy.scrollTo(currentIndex, anchor: .center)
         }
       })
       .onAppear {
-        Task { @MainActor in
-          withAnimation(animation) {
-            scrollProxy.scrollTo(currentIndex, anchor: .center)
-          }
+        withAnimation(animation) {
+          scrollProxy.scrollTo(currentIndex, anchor: .center)
         }
       }
     }
