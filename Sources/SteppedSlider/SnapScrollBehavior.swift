@@ -50,5 +50,7 @@ extension ScrollTargetBehavior where Self == SnapScrollTargetBehavior {
   /// Creates a `SnapScrollTargetBehavior` with the specified step.
   /// - Parameter step: The step value to which the scroll target should snap.
   /// - Returns: A `SnapScrollTargetBehavior` instance with the given step value.
-  static func snap(step: Double) -> SnapScrollTargetBehavior { .init(step: step) }
+  static func snap(step: Double) -> SnapScrollTargetBehavior {
+    .init(step: step)
+  }
 }

@@ -12,6 +12,8 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View, M
   @State private var scrollIndex: Int?
   @State private var contentSize: CGSize = .zero
 
+  @State private var isScrolling: Bool = false
+
   private let itemWidth: CGFloat
   private let spacing: CGFloat
 
@@ -19,11 +21,12 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View, M
   private let steps: CGFloat
   private let maximumIndex: Int
 
+  private var onScrolling: @MainActor (Bool) -> Void
   private var onEditing: @MainActor () -> Void
 
   let anchorView: () -> Anchor
-  let segmentView: (_ index: Int, _ maximumIndex: Int) -> Segment
-  let segmentOverlayView: (_ index: Int, _ maximumIndex: Int) -> SegmentOverlay
+  let segmentView: (_ index: Int, _ maximumIndex: Int, _ isScrolling: Bool) -> Segment
+  let segmentOverlayView: (_ index: Int, _ maximumIndex: Int, _ isScrolling: Bool) -> SegmentOverlay
 
   public enum HorizontalEdgeMask {
     case hidden
@@ -45,9 +48,10 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View, M
     animation: Animation? = .default,
     segmentModifier: Modifier = EmptyModifier(),
     @ViewBuilder anchorView: @MainActor @escaping () -> Anchor,
-    @ViewBuilder segmentView: @MainActor @escaping (Int, Int) -> Segment,
-    @ViewBuilder segmentOverlayView: @MainActor @escaping (Int, Int) -> SegmentOverlay,
-    onEditing: @MainActor @escaping () -> Void
+    @ViewBuilder segmentView: @MainActor @escaping (Int, Int, Bool) -> Segment,
+    @ViewBuilder segmentOverlayView: @MainActor @escaping (Int, Int, Bool) -> SegmentOverlay,
+    onEditing: @MainActor @escaping () -> Void,
+    onScrolling: @MainActor @escaping (Bool) -> Void
   ) {
     self._value = value
     self.range = range
@@ -61,6 +65,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View, M
     self.segmentView = segmentView
     self.segmentOverlayView = segmentOverlayView
     self.onEditing = onEditing
+    self.onScrolling = onScrolling
 
     self.maximumIndex = Int(((range.upperBound - range.lowerBound) / steps))
     self.currentIndex = .init(SteppedSlider.calculateCurrentIndex(value: value.wrappedValue, steps: steps, range: range))
@@ -71,10 +76,10 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View, M
       ScrollView(.horizontal, showsIndicators: false) {
         LazyHStack(spacing: spacing) {
           ForEach(0...maximumIndex, id: \.self) { index in
-            segmentView(index, maximumIndex)
+            segmentView(index, maximumIndex, isScrolling)
               .frame(width: itemWidth)
               .overlay(
-                segmentOverlayView(index, maximumIndex)
+                segmentOverlayView(index, maximumIndex, isScrolling)
               )
               .id(index)
               .modifier(segmentModifier)
@@ -126,6 +131,10 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View, M
           scrollProxy.scrollTo(currentIndex, anchor: .center)
         }
       })
+      .modifier(ScrollPhaseChangeModifier(handler: { isScrolling in
+        self.isScrolling = isScrolling
+        onScrolling(isScrolling)
+      }))
       .onAppear {
         withAnimation(animation) {
           scrollProxy.scrollTo(currentIndex, anchor: .center)
@@ -141,13 +150,28 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View, M
 
 }
 
+struct ScrollPhaseChangeModifier: ViewModifier {
+  let handler: (Bool) -> Void
+  func body(content: Content) -> some View {
+    if #available(iOS 18.0, *) {
+      content
+        .onScrollPhaseChange({ _, value in
+          handler(value.isScrolling)
+        })
+    } else {
+      content
+    }
+  }
+}
+
+
 #if DEBUG
 
 struct ScrollTransitionModifier: ViewModifier {
   func body(content: Content) -> some View {
     content.scrollTransition { content, phase in
       content
-        .opacity(phase.isIdentity ? 1 : 0.3)
+      //        .opacity(phase.isIdentity ? 1 : 0.3)
     }
   }
 }
@@ -178,14 +202,14 @@ struct ScrollTransitionModifier: ViewModifier {
           .foregroundColor(.red)
           .padding(.top, 12)
       },
-      segmentView: { index, maximumIndex in
+      segmentView: { index, maximumIndex, isScrolling in
         let isBold = shouldBold1(index, maximumIndex)
         Rectangle()
           .foregroundStyle(Color.primary)
           .frame(width: isBold ? 2 : 1, height: isBold ? 24 : 12)
           .padding(.top, 12)
       },
-      segmentOverlayView: { index, maximumIndex in
+      segmentOverlayView: { index, maximumIndex, isScrolling in
         if shouldBold1(index, maximumIndex) {
           Text(String(format: "%g", CGFloat(index) * steps + range.lowerBound))
             .font(.caption2)
@@ -194,7 +218,8 @@ struct ScrollTransitionModifier: ViewModifier {
             .padding(.top, 12)
         }
       },
-      onEditing: {}
+      onEditing: {},
+      onScrolling: { _ in }
     )
     .frame(height: 60)
     .padding()
@@ -207,36 +232,37 @@ struct ScrollTransitionModifier: ViewModifier {
 
     HStack {
       SteppedSlider(
-      value: $value,
-      range: range,
-      steps: steps,
-      horizontalEdgeMask: .visible(width: 24),
-      animation: nil,
-      anchorView: {
-        Rectangle()
-          .frame(width: 2)
-          .foregroundColor(.red)
-      },
-      segmentView: { index, maximumIndex in
-        let isBold = shouldBold2(index, maximumIndex)
-        VStack {
+        value: $value,
+        range: range,
+        steps: steps,
+        horizontalEdgeMask: .visible(width: 24),
+        animation: nil,
+        anchorView: {
           Rectangle()
-            .frame(width: isBold ? 2 : 1, height: isBold ? 16 : 12)
-          Spacer()
-          Rectangle()
-            .frame(width: isBold ? 2 : 1, height: isBold ? 16 : 12)
-        }
-      },
-      segmentOverlayView: { index, maximumIndex in
-        let isBold = shouldBold2(index, maximumIndex)
-        if isBold {
-          Text(String(format: "%g", CGFloat(index) * steps + range.lowerBound))
-            .font(.caption2)
-            .fixedSize()
-        }
-      },
-      onEditing: {}
-    )
+            .frame(width: 2)
+            .foregroundColor(.red)
+        },
+        segmentView: { index, maximumIndex, isScrolling in
+          let isBold = shouldBold2(index, maximumIndex)
+          VStack {
+            Rectangle()
+              .frame(width: isBold ? 2 : 1, height: isBold ? 16 : 12)
+            Spacer()
+            Rectangle()
+              .frame(width: isBold ? 2 : 1, height: isBold ? 16 : 12)
+          }
+        },
+        segmentOverlayView: { index, maximumIndex, isScrolling in
+          let isBold = shouldBold2(index, maximumIndex)
+          if isBold {
+            Text(String(format: "%g", CGFloat(index) * steps + range.lowerBound))
+              .font(.caption2)
+              .fixedSize()
+          }
+        },
+        onEditing: {},
+        onScrolling: { _ in }
+      )
       .frame(height: 60)
       .padding()
 
@@ -279,6 +305,86 @@ struct ScrollTransitionModifier: ViewModifier {
         Text("Toggle").bold()
       })
       .buttonStyle(.borderedProminent)
+
+    }
+
+  }
+}
+
+#Preview {
+
+  @Previewable @State var value: CGFloat = 5.8
+  @Previewable @State var isScrolling: Bool = false
+
+  let range: ClosedRange<CGFloat> = 1...50
+  let steps = 0.1
+
+  VStack {
+
+    SteppedSlider(
+      value: $value,
+      range: range,
+      steps: steps,
+      horizontalEdgeMask: .visible(width: 24),
+      animation: .bouncy,
+      segmentModifier: ScrollTransitionModifier(),
+      anchorView: {
+        Text(String(format: "%.1f", value))
+          .monospacedDigit()
+          .padding(.horizontal, 16)
+          .frame(maxHeight: .infinity)
+          .background(LinearGradient(
+            colors: [
+              .white.opacity(0),
+              .white,
+              .white,
+              .white,
+              .white.opacity(0),
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+          ))
+          .allowsHitTesting(false)
+      },
+      segmentView: { index, maximumIndex, isScrolling in
+        Rectangle()
+          .foregroundStyle(Color.primary)
+          .frame(width: 1, height: 12)
+          .opacity(isScrolling ? 1 : 0.5)
+          .scaleEffect(isScrolling ? .init(width: 1, height: 1) : .init(width: 0.6, height: 0.6), anchor: .bottom)
+          .animation(.bouncy, value: isScrolling)
+      },
+      segmentOverlayView: { index, maximumIndex, isScrolling in
+      },
+      onEditing: {},
+      onScrolling: { isScrolling = $0 }
+    )
+    .frame(width: 120, height: 60)
+    .padding()
+
+    Spacer(minLength: 24).fixedSize()
+
+    HStack {
+
+      Button(action: {
+        if range.contains(value - 1) {
+          value -= 1
+        }
+      }, label: {
+        Text("-1").bold()
+      })
+      .buttonStyle(.borderedProminent)
+      .disabled(!range.contains(value - 1))
+      
+      Button(action: {
+        if range.contains(value + 1) {
+          value += 1
+        }
+      }, label: {
+        Text("+1").bold()
+      })
+      .buttonStyle(.borderedProminent)
+      .disabled(!range.contains(value + 1))
 
     }
 
