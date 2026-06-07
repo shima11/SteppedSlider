@@ -43,7 +43,7 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View, M
     spacing: CGFloat = 0,
     horizontalEdgeMask: HorizontalEdgeMask = .visible(width: 12),
     animation: Animation? = .default,
-    segmentModifier: Modifier = EmptyModifier(),
+    segmentModifier: Modifier,
     @ViewBuilder anchorView: @MainActor @escaping () -> Anchor,
     @ViewBuilder segmentView: @MainActor @escaping (Int, Int) -> Segment,
     @ViewBuilder segmentOverlayView: @MainActor @escaping (Int, Int) -> SegmentOverlay,
@@ -139,6 +139,37 @@ public struct SteppedSlider<Anchor: View, Segment: View, SegmentOverlay: View, M
     return Int(round(index))
   }
 
+}
+
+extension SteppedSlider where Modifier == EmptyModifier {
+  public init(
+    value: Binding<CGFloat>,
+    range: ClosedRange<CGFloat>,
+    steps: CGFloat,
+    itemWidth: CGFloat = 10,
+    spacing: CGFloat = 0,
+    horizontalEdgeMask: HorizontalEdgeMask = .visible(width: 12),
+    animation: Animation? = .default,
+    @ViewBuilder anchorView: @MainActor @escaping () -> Anchor,
+    @ViewBuilder segmentView: @MainActor @escaping (Int, Int) -> Segment,
+    @ViewBuilder segmentOverlayView: @MainActor @escaping (Int, Int) -> SegmentOverlay,
+    onEditing: @MainActor @escaping () -> Void
+  ) {
+    self.init(
+      value: value,
+      range: range,
+      steps: steps,
+      itemWidth: itemWidth,
+      spacing: spacing,
+      horizontalEdgeMask: horizontalEdgeMask,
+      animation: animation,
+      segmentModifier: EmptyModifier(),
+      anchorView: anchorView,
+      segmentView: segmentView,
+      segmentOverlayView: segmentOverlayView,
+      onEditing: onEditing
+    )
+  }
 }
 
 #if DEBUG
